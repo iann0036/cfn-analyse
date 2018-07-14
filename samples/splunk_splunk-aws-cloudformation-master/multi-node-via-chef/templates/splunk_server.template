@@ -1,0 +1,335 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+
+  "Description" : "Add a Splunk server to your VPC.",
+
+  "Parameters" : {
+
+    "VpcId" : {
+      "Type" : "String",
+      "Default" : "vpc-",
+      "Description" : "Vpc ID of your existing Virtual Private Cloud (VPC)"
+    },
+
+    "SubnetId" : {
+      "Type" : "String",
+      "Default" : "subnet-",
+      "Description" : "Subnet ID of an existing Public or Private subnet in your Virtual Private Cloud (VPC)"
+    },
+
+    "InstanceType" : {
+      "Description" : "Splunk Server EC2 instance type",
+      "Type" : "String",
+      "Default" : "t2.micro",
+      "AllowedValues" : ["t2.micro", "m3.medium", "m3.large", "m3.xlarge", "m3.2xlarge", "m4.large", "m4.xlarge", "m4.2xlarge", "m4.4xlarge", "m4.10xlarge", "c3.large", "c3.xlarge", "c3.2xlarge", "c3.4xlarge", "c3.8xlarge", "c4.large", "c4.xlarge", "c4.2xlarge", "c4.4xlarge", "c4.8xlarge", "r3.large", "r3.xlarge", "r3.2xlarge", "r3.4xlarge", "r3.8xlarge", "i2.xlarge", "i2.2xlarge", "i2.4xlarge", "i2.8xlarge", "d2.xlarge", "d2.2xlarge", "d2.4xlarge", "d2.8xlarge"],
+      "ConstraintDescription" : "must be a valid EC2 instance type."
+    },
+
+    "KeyName" : {
+      "Description" : "Name of an existing EC2 KeyPair to enable SSH access to the instances (use bastion KeyPair if available)",
+      "Type" : "String",
+      "MinLength": "1",
+      "MaxLength": "64",
+      "AllowedPattern" : "[-_ a-zA-Z0-9]*",
+      "ConstraintDescription" : "can contain only alphanumeric characters, spaces, dashes and underscores."
+    },
+
+    "SecurityGroup": {
+      "Default": "default",
+      "Description" : "The EC2 security group that this instance belongs to",
+      "Type": "String"
+    },
+
+    "AssociatePublicIP" : {
+      "Description" : "Indicates whether server receives a public IP address",
+      "Type": "String",
+      "Default": "yes",
+      "AllowedValues": [ "yes", "no" ],
+      "ConstraintDescription": "must be 'yes' or 'no'"
+    },
+
+    "ResourceName" : {
+      "Description" : "The Logical Resource Name - commonly set by parent stack",
+      "Type": "String",
+      "Default": "SplunkServer",
+      "MinLength": "1",
+      "MaxLength": "128",
+      "AllowedPattern" : "[a-zA-Z][a-zA-Z0-9]*"
+    },
+
+    "SplunkRole" : {
+      "Description" : "Chef Splunk role to assign to this instance",
+      "Type" : "String",
+      "MinLength": "1",
+      "MaxLength": "64",
+      "AllowedValues" : [ "splunk-server", "splunk-indexer", "splunk-searcher", "cluster-master", "cluster-peer", "cluster-search-head" ],
+      "ConstraintDescription" : "must be a valid Chef role for Splunk."
+    },
+
+    "LicenseMasterIP" : {
+      "Type" : "String",
+      "Default": "",
+      "Description" : "[Optional] Splunk license master IP or hostname."
+    },
+
+    "ClusterMasterIP" : {
+      "Type" : "String",
+      "Default": "",
+      "Description" : "[Optional] Splunk cluster master IP or hostname."
+    },
+
+    "IsLicenseMaster" : {
+      "Description" : "Indicates whether server acts as license master. Overrides SplunkLicenseMasterIP setting",
+      "Type": "String",
+      "Default": "no",
+      "AllowedValues": [ "yes", "no" ],
+      "ConstraintDescription": "must be 'yes' or 'no'"
+    },
+
+    "ClusterSecurityKey" : {
+      "Description" : "Security key to authenticate traffic between cluster nodes.",
+      "Type" : "String",
+      "Default" : "password",
+      "AllowedPattern" : "[-_ a-zA-Z0-9]+",
+      "ConstraintDescription" : "can contain only alphanumeric characters, spaces, dashes and underscores."
+    },
+
+    "CookbookBucketName" : {
+      "Description" : "Name of S3 bucket with Chef recipes & roles",
+      "Default" : "splunk-cloud",
+      "Type" : "String"
+    }
+  },
+
+  "Conditions" : {
+
+    "AssociatePublicIpAddress" : {
+      "Fn::Equals" : [
+        {"Ref" : "AssociatePublicIP"},
+        "yes"
+      ]
+    },
+    "CreateDefaultSecurityGroup" : {
+      "Fn::Equals" : [
+        {"Ref" : "SecurityGroup"},
+        "default"
+      ]
+    }
+  },
+
+  "Mappings" : {
+
+    "AWSInstanceType2Arch" : {
+      "t2.micro"    : { "Arch" : "64HVM" },
+      "m3.medium"   : { "Arch" : "64HVM" },
+      "m3.large"    : { "Arch" : "64HVM" },
+      "m3.xlarge"   : { "Arch" : "64HVM" },
+      "m3.2xlarge"  : { "Arch" : "64HVM" },
+      "m4.large"    : { "Arch" : "64HVM" },
+      "m4.xlarge"   : { "Arch" : "64HVM" },
+      "m4.2xlarge"  : { "Arch" : "64HVM" },
+      "m4.4xlarge"  : { "Arch" : "64HVM" },
+      "m4.10xlarge" : { "Arch" : "64HVM" },
+      "c3.large"    : { "Arch" : "64HVM" },
+      "c3.xlarge"   : { "Arch" : "64HVM" },
+      "c3.2xlarge"  : { "Arch" : "64HVM" },
+      "c3.4xlarge"  : { "Arch" : "64HVM" },
+      "c3.8xlarge"  : { "Arch" : "64HVM" },
+      "c4.large"    : { "Arch" : "64HVM" },
+      "c4.xlarge"   : { "Arch" : "64HVM" },
+      "c4.2xlarge"  : { "Arch" : "64HVM" },
+      "c4.4xlarge"  : { "Arch" : "64HVM" },
+      "c4.8xlarge"  : { "Arch" : "64HVM" },
+      "r3.large"    : { "Arch" : "64HVM" },
+      "r3.xlarge"   : { "Arch" : "64HVM" },
+      "r3.2xlarge"  : { "Arch" : "64HVM" },
+      "r3.4xlarge"  : { "Arch" : "64HVM" },
+      "r3.8xlarge"  : { "Arch" : "64HVM" },
+      "i2.xlarge"   : { "Arch" : "64HVM" },
+      "i2.2xlarge"  : { "Arch" : "64HVM" },
+      "i2.4xlarge"  : { "Arch" : "64HVM" },
+      "i2.8xlarge"  : { "Arch" : "64HVM" },
+      "d2.xlarge"   : { "Arch" : "64HVM" },
+      "d2.2xlarge"  : { "Arch" : "64HVM" },
+      "d2.4xlarge"  : { "Arch" : "64HVM" },
+      "d2.8xlarge"  : { "Arch" : "64HVM" }
+    },
+
+    "AWSRegionArch2AMI" : {
+      "us-east-1"      : { "64HVM" : "ami-e3106686" },
+      "us-west-1"      : { "64HVM" : "ami-cd3aff89" },
+      "us-west-2"      : { "64HVM" : "ami-9ff7e8af" },
+      "us-gov-west-1"  : { "64HVM" : "ami-ad34568e" },
+      "eu-central-1"   : { "64HVM" : "ami-daaeaec7" },
+      "eu-west-1"      : { "64HVM" : "ami-69b9941e" },
+      "sa-east-1"      : { "64HVM" : "ami-3b0c9926" },
+      "ap-southeast-1" : { "64HVM" : "ami-52978200" },
+      "ap-southeast-2" : { "64HVM" : "ami-c11856fb" },
+      "ap-northeast-1" : { "64HVM" : "ami-9a2fb89a" },
+      "cn-north-1"     : { "64HVM" : "ami-6cb22e55" }
+    }
+  },
+
+  "Resources" : {
+
+    "SplunkDefaultSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Condition" : "CreateDefaultSecurityGroup",
+      "Properties" : {
+        "VpcId" : { "Ref" : "VpcId" },
+        "GroupDescription" : "Enable internal access for SSH and Splunk management/replication, and allow public access to Splunk web & receiver",
+        "SecurityGroupIngress" : [
+          { "IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : "192.168.0.0/16" },
+          { "IpProtocol" : "tcp", "FromPort" : "8089", "ToPort" : "8089", "CidrIp" : "192.168.0.0/16" },
+          { "IpProtocol" : "tcp", "FromPort" : "9887", "ToPort" : "9887", "CidrIp" : "192.168.0.0/16" },
+          { "IpProtocol" : "tcp", "FromPort" : "9997", "ToPort" : "9997", "CidrIp" : "0.0.0.0/0" },
+          { "IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "CidrIp" : "0.0.0.0/0" },
+          { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : "0.0.0.0/0" }
+        ]
+      }
+    },
+
+    "SplunkServerHost" : {
+      "Type" : "AWS::EC2::Instance",
+      "Metadata" : {
+        "AWS::CloudFormation::Init" : {
+          "config" : {
+            "packages" : {
+              "rpm" : {
+                "chef-client" : "https://opscode-omnibus-packages.s3.amazonaws.com/el/7/x86_64/chef-12.5.1-1.el7.x86_64.rpm"
+              }
+            },
+            "files" : {
+              "/etc/chef/node.json" : {
+                "content" : { "Fn::Join" : ["", [
+                  "{\n",
+                  "  \"splunk\": {\n",
+                  "    \"server_name\": \"",  { "Ref" : "ResourceName" }, "\",\n",
+                  "    \"cluster_master_host\": \"",  { "Ref" : "ClusterMasterIP" }, "\",\n",
+                  "    \"license_master_host\": \"",  { "Ref" : "LicenseMasterIP" }, "\",\n",
+                  "    \"is_license_master\": \"",  { "Ref" : "IsLicenseMaster" }, "\",\n",
+                  "    \"pass4SymmKey\": \"",  { "Ref" : "ClusterSecurityKey" }, "\"\n",
+                  "  },\n",
+                  "  \"run_list\": [\n",
+                  "    \"role[", { "Ref" : "SplunkRole" }, "]\"\n",
+                  "  ]\n",
+                  "}"
+                ]]},
+                "mode" : "000644",
+                "owner" : "root",
+                "group" : "root"
+              },
+              "/etc/chef/client.rb" : {
+                "content" : { "Fn::Join" : ["", [
+                  "log_level :info\n",
+                  "log_location STDOUT\n",
+                  "file_cache_path \"/var/chef\"\n",
+                  "cookbook_path \"/etc/chef/cookbooks\"\n",
+                  "role_path \"/etc/chef/roles\"\n",
+                  "json_attribs \"/etc/chef/node.json\"\n"
+                ]] },
+                "mode"  : "000644",
+                "owner" : "root",
+                "group" : "root"
+              }
+            },
+
+            "sources" : {
+              "/etc/chef/cookbooks/" : { "Fn::Join" : ["", ["https://" , { "Ref" : "CookbookBucketName" }, ".s3.amazonaws.com/cookbooks.tar.gz"]]},
+              "/etc/chef/roles/" : { "Fn::Join" : ["", ["https://" , { "Ref" : "CookbookBucketName" }, ".s3.amazonaws.com/roles.tar.gz"]]}
+            }
+          }
+        }
+      },
+      "Properties" : {
+        "InstanceType" : { "Ref" : "InstanceType" },
+        "ImageId" : { "Fn::FindInMap" : [ "AWSRegionArch2AMI", { "Ref" : "AWS::Region" }, "64HVM" ]},
+        "NetworkInterfaces" : [{
+          "GroupSet"                 : [{
+            "Fn::If" : [
+              "CreateDefaultSecurityGroup",
+              {"Ref" : "SplunkDefaultSecurityGroup"},
+              {"Ref" : "SecurityGroup"}
+            ]
+          }],
+          "AssociatePublicIpAddress" : { "Fn::If" : ["AssociatePublicIpAddress", "true", "false"] },
+          "DeviceIndex"              : "0",
+          "DeleteOnTermination"      : "true",
+          "SubnetId"                 : { "Ref" : "SubnetId" }
+        }],
+        "KeyName" : { "Ref" : "KeyName" },
+        "Tags": [
+           { "Key" : "Role", "Value": { "Ref" : "SplunkRole"} },
+           { "Key" : "Name", "Value" : { "Ref" : "ResourceName"} }
+        ],
+        "UserData": {
+          "Fn::Base64" : { "Fn::Join" : ["", [
+                "#!/bin/bash -v\n",
+
+                "yum update -y aws-cfn-bootstrap\n",
+
+                "#helper function\n",
+                "function error_exit\n",
+                "{\n",
+                "  /opt/aws/bin/cfn-signal -e 1 -r \"$1\" '", { "Ref" : "WaitHandle" }, "'\n",
+                "  exit 1\n",
+                "}\n",
+
+                "/opt/aws/bin/cfn-init -s ", { "Ref" : "AWS::StackName" }, " -r SplunkServerHost ",
+                "    --region ", { "Ref" : "AWS::Region" }, " || error_exit 'Failed to run cfn-init'\n",
+
+                "#run chef solo with client.rb config\n",
+                "chef-solo -c /etc/chef/client.rb || error_exit 'Failed to run chef-solo'\n",
+
+                "#all is well so signal success\n",
+                "/opt/aws/bin/cfn-signal -e 0 -r \"Splunk server setup complete\" '", { "Ref" : "WaitHandle" }, "'\n"
+              ]
+            ]
+          }
+        }
+      }
+    },
+
+    "WaitHandle" : {
+      "Type" : "AWS::CloudFormation::WaitConditionHandle"
+    },
+
+    "WaitCondition" : {
+      "Type" : "AWS::CloudFormation::WaitCondition",
+      "DependsOn" : "SplunkServerHost",
+      "Properties" : {
+        "Handle" : {"Ref" : "WaitHandle"},
+        "Timeout" : "900"
+      }
+    }
+  },
+
+  "Outputs" : {
+
+    "InstanceID" : {
+      "Value" : {"Ref": "SplunkServerHost"},
+      "Description" : "Splunk Server Instance ID"
+    },
+
+    "PrivateDnsName" : {
+      "Value" : {"Fn::GetAtt" : [ "SplunkServerHost", "PrivateDnsName" ]},
+      "Description" : "Private DNS name of instance"
+    },
+
+    "PublicDnsName" : {
+      "Value" : {"Fn::GetAtt" : [ "SplunkServerHost", "PublicDnsName" ]},
+      "Description" : "Public DNS name of instance"
+    },
+
+    "PrivateIp" : {
+      "Value" : {"Fn::GetAtt" : [ "SplunkServerHost", "PrivateIp" ]},
+      "Description" : "Private IP address of instance"
+    },
+
+    "PublicIp" : {
+      "Condition" : "AssociatePublicIpAddress",
+      "Value" : {"Fn::GetAtt" : [ "SplunkServerHost", "PublicIp" ]},
+      "Description" : "Public IP address of instance"
+    }
+  }
+}

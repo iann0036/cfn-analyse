@@ -1,0 +1,13 @@
+{
+    "AWSTemplateFormatVersion" : "2010-09-09",
+    "Description" : "A template designed to break your spirits",
+
+    "Resources" : {
+        "MyRes" : {
+            "Type" : "AWS::SNS::Topic",
+            "Properties" : {
+                "TopicName" : { "Fn::Sub": "Abc${AWS::AccountId}def${!something}ghi" }
+            }
+        }
+    }
+}

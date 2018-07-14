@@ -1,0 +1,322 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "CloudFormation Approvals and Validation Engine - v1"
+
+Parameters: 
+  TemplateBucket: 
+    Type: String
+    Default: cfn-validator-test-bucket
+    Description: Bucket where CloudFormation templates will automatically be processed
+  SlackHookUrl: 
+    Type: String
+    Description: The full URL for a Slack Incoming WebHook
+
+Resources:
+  CfnValidatorApiGateway:
+    Type: "AWS::ApiGateway::RestApi"
+    Properties:
+      Body:
+        swagger: '2.0'
+        info:
+          title: CfnValidatorApiGateway
+          description: CloudFormation Approvals and Validation Engine
+          version: 1.0
+          contact:
+            name: Ian Mckay
+            email: contact@ianmckay.com.au
+        paths:
+          "/view/{executionarn}/{tasktoken}":
+            get:
+              description: Views a template version
+              produces:
+              - application/json
+              x-amazon-apigateway-integration:
+                requestTemplates:
+                  application/json: "{\"action\": \"view\", \"executionArn\": \"$input.params('executionarn')\", \"taskToken\": \"$input.params('tasktoken')\"}"
+                type: aws
+                uri: !Join ["", ["arn:aws:apigateway:", !Ref "AWS::Region", ":lambda:path/2015-03-31/functions/", !GetAtt [ CfnValidatorFunction, Arn ], "/invocations"]]
+                httpMethod: POST
+                responses:
+                  "default":
+                    statusCode: "200"
+                    responseTemplates:
+                      application/json: "$input.path('$')"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin : "'*'"
+                      method.response.header.Content-Type : "'application/json'"
+              responses:
+                "200":
+                  headers:
+                    Access-Control-Allow-Origin:
+                      type: "string"
+                    Content-Type:
+                      type: "string"
+              parameters:
+              - name: executionarn
+                in: path
+                description: SFN Execution ARN
+                required: true
+                type: string
+              - name: tasktoken
+                in: path
+                description: SFN Task Token
+                required: true
+                type: string
+          "/approve/{executionarn}/{tasktoken}":
+            get:
+              description: Approves a template version
+              produces:
+              - application/json
+              x-amazon-apigateway-integration:
+                requestTemplates:
+                  application/json: "{\"action\": \"approve\", \"executionArn\": \"$input.params('executionarn')\", \"taskToken\": \"$input.params('tasktoken')\"}"
+                type: aws
+                uri: !Join ["", ["arn:aws:apigateway:", !Ref "AWS::Region", ":lambda:path/2015-03-31/functions/", !GetAtt [ CfnValidatorFunction, Arn ], "/invocations"]]
+                httpMethod: POST
+                responses:
+                  "default":
+                    statusCode: "200"
+                    responseTemplates:
+                      application/json: "$input.path('$')"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin : "'*'"
+                      method.response.header.Content-Type : "'application/json'"
+              responses:
+                "200":
+                  headers:
+                    Access-Control-Allow-Origin:
+                      type: "string"
+                    Content-Type:
+                      type: "string"
+              parameters:
+              - name: executionarn
+                in: path
+                description: SFN Execution ARN
+                required: true
+                type: string
+              - name: tasktoken
+                in: path
+                description: SFN Task Token
+                required: true
+                type: string
+          "/deny/{executionarn}/{tasktoken}":
+            get:
+              description: Denies a template version
+              produces:
+              - application/json
+              x-amazon-apigateway-integration:
+                requestTemplates:
+                  application/json: "{\"action\": \"deny\", \"executionArn\": \"$input.params('executionarn')\", \"taskToken\": \"$input.params('tasktoken')\"}"
+                type: aws
+                uri: !Join ["", ["arn:aws:apigateway:", !Ref "AWS::Region", ":lambda:path/2015-03-31/functions/", !GetAtt [ CfnValidatorFunction, Arn ], "/invocations"]]
+                httpMethod: POST
+                responses:
+                  "default":
+                    statusCode: "200"
+                    responseTemplates:
+                      application/json: "$input.path('$')"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin : "'*'"
+                      method.response.header.Content-Type : "'application/json'"
+              responses:
+                "200":
+                  headers:
+                    Access-Control-Allow-Origin:
+                      type: "string"
+                    Content-Type:
+                      type: "string"
+              parameters:
+              - name: executionarn
+                in: path
+                description: SFN Execution ARN
+                required: true
+                type: string
+              - name: tasktoken
+                in: path
+                description: SFN Task Token
+                required: true
+                type: string
+
+  CfnValidatorApiDeployment:
+    Type: "AWS::ApiGateway::Deployment"
+    Properties:
+      StageName: api
+      RestApiId: !Ref CfnValidatorApiGateway
+
+  CfnValidatorLambdaExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: God
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "*"
+                Resource: "*"
+  
+  CfnValidatorLambdaS3Permission:
+      Type: "AWS::Lambda::Permission"
+      DependsOn: CfnValidatorFunction
+      Properties:
+        Action: "lambda:invokeFunction"
+        FunctionName: !GetAtt [ CfnValidatorFunction, Arn ]
+        Principal: "s3.amazonaws.com"
+        SourceArn: !Join ["", ["arn:aws:s3:::", !Ref TemplateBucket]]
+  
+  CfnValidatorLambdaAPIPermission:
+      Type: "AWS::Lambda::Permission"
+      DependsOn: CfnValidatorFunction
+      Properties:
+        Action: "lambda:invokeFunction"
+        FunctionName: !GetAtt [ CfnValidatorFunction, Arn ]
+        Principal: "apigateway.amazonaws.com"
+        SourceArn: !Join ["", ["arn:aws:execute-api:", !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":", !Ref CfnValidatorApiGateway, "/*"]]
+  
+  CfnValidatorBucket:
+    Type: "AWS::S3::Bucket"
+    DependsOn: CfnValidatorFunction
+    Properties:
+      BucketName: !Ref TemplateBucket
+      NotificationConfiguration:
+        LambdaConfigurations:
+        -
+          Function: !GetAtt [ CfnValidatorFunction, Arn ]
+          Event: "s3:ObjectCreated:*"
+      VersioningConfiguration:
+        Status: Enabled
+
+  CfnValidatorFunction:
+    Type: "AWS::Lambda::Function"
+    DependsOn: CfnValidatorLambdaExecutionRole
+    Properties:
+      Handler: "index.handler"
+      Environment:
+        Variables:
+          SLACK_HOOK_URL: !Ref SlackHookUrl
+      Role: !GetAtt [ CfnValidatorLambdaExecutionRole, Arn ]
+      Code:
+        S3Bucket: !Sub cave-${AWS::Region}
+        S3Key: cfn-validate.zip
+      Runtime: "python3.6"
+      Timeout: 30
+
+  CfnValidatorStatesExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - !Sub states.${AWS::Region}.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: CfnValidatorStatesExecutionPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "lambda:InvokeFunction"
+                Resource: !GetAtt [ CfnValidatorFunction, Arn ]
+  
+  CfnValidatorHoldActivity:
+    Type: "AWS::StepFunctions::Activity"
+    Properties:
+      Name: CfnValidatorHoldActivity
+
+  CfnValidatorStateMachine:
+    Type: "AWS::StepFunctions::StateMachine"
+    DependsOn:
+      - CfnValidatorHoldActivity
+      - CfnValidatorFunction
+      - CfnValidatorStatesExecutionRole
+      - CfnValidatorLambdaExecutionRole
+    Properties:
+      DefinitionString:
+        !Sub
+          - |-
+            {
+              "Comment": "CloudFormation Approvals and Validation Engine",
+              "StartAt": "RequiresApprovalChoice",
+              "States": {
+                "RequiresApprovalChoice": {
+                  "Type" : "Choice",
+                  "Choices": [
+                    {
+                      "Variable": "$.requiresApproval",
+                      "BooleanEquals": false,
+                      "Next": "DeployState"
+                    },
+                    {
+                      "Variable": "$.requiresApproval",
+                      "BooleanEquals": true,
+                      "Next": "HoldForApprovalState"
+                    }
+                  ]
+                },
+
+                "ApproveDenyChoice": {
+                  "Type" : "Choice",
+                  "Choices": [
+                    {
+                      "Variable": "$.approved",
+                      "BooleanEquals": false,
+                      "Next": "DeniedState"
+                    },
+                    {
+                      "Variable": "$.approved",
+                      "BooleanEquals": true,
+                      "Next": "DeployState"
+                    }
+                  ]
+                },
+
+                "DeployState": {
+                  "Type" : "Task",
+                  "Resource": "${CfnValidatorFunctionArn}",
+                  "Next": "WaitForUpsert"
+                },
+
+                "WaitForUpsert": {
+                  "Type" : "Task",
+                  "Resource": "${CfnValidatorFunctionArn}",
+                  "Retry": [
+                    {
+                      "ErrorEquals": [ "PendingUpsert" ],
+                      "IntervalSeconds": 30,
+                      "BackoffRate": 1.0,
+                      "MaxAttempts": 240
+                    }
+                  ],
+                  "End": true
+                },
+
+                "DeniedState": {
+                  "Type" : "Pass",
+                  "End": true
+                },
+
+                "HoldForApprovalState": {
+                  "Type" : "Task",
+                  "Resource": "${HoldActivityArn}",
+                  "TimeoutSeconds": 2592000,
+                  "Next": "ApproveDenyChoice"
+                }
+              }
+            }
+          - {
+            CfnValidatorFunctionArn: !GetAtt [ CfnValidatorFunction, Arn ],
+            HoldActivityArn: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:activity:CfnValidatorHoldActivity"
+          }
+      RoleArn: !GetAtt [ CfnValidatorStatesExecutionRole, Arn ]

@@ -1,0 +1,14 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+ 
+  "Description" : "Custom made non-AWS template",
+
+  "Resources" : {
+    "TestELB" : {
+      "Type" : "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties" : {
+        "Subnets" : { "Fn::ImportValue" : "SomeImport"}
+      }
+    }
+  }
+}

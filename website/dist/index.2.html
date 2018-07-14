@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+	<meta http-equiv="x-ua-compatible" content="ie=edge">
+	<title>CAVE</title>
+
+	<!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+	<!--[if lt IE 9]>
+	<script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+	<script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+	<![endif]-->
+
+<link rel="stylesheet" href="css/lib/lobipanel/lobipanel.min.css">
+<link rel="stylesheet" href="css/separate/vendor/lobipanel.min.css">
+<link rel="stylesheet" href="css/lib/jqueryui/jquery-ui.min.css">
+<link rel="stylesheet" href="css/separate/pages/widgets.min.css">
+
+    <link rel="stylesheet" href="css/lib/font-awesome/font-awesome.min.css">
+    <link rel="stylesheet" href="css/lib/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" href="css/main.css">
+</head>
+
+<body>
+
+	<header class="site-header">
+	    <div class="container-fluid">
+	        <a href="#" class="site-logo">
+	            <img class="hidden-md-down" src="logo.png" alt="">
+				<img class="hidden-lg-down" src="logo.png" alt="">
+			</a>
+			
+			<div style="position: relative; top: 10px; left: 20px;">
+				<b style="position: absolute;" id="titleBlock">Loading...</b>
+			</div>
+	
+			<!--
+	        <button id="show-hide-sidebar-toggle" class="show-hide-sidebar">
+	            <span>toggle menu</span>
+	        </button>
+	
+	        <button class="hamburger hamburger--htla">
+	            <span>toggle menu</span>
+			</button>
+			-->
+
+			
+
+	        <div class="site-header-content">
+	            <div class="site-header-content-in">
+	                <div class="site-header-shown">
+						<button id="approveButton" class="btn btn-nav btn-inline btn-success-outline" href="#" style="width: 90px;">
+							Approve
+						</button>
+						<button id="denyButton" class="btn btn-nav btn-inline btn-danger-outline" href="#" style="width: 90px;">
+							Deny
+						</button>
+	                </div><!--.site-header-shown-->
+	
+	                <div class="mobile-menu-right-overlay"></div>
+	            </div><!--site-header-content-in-->
+	        </div><!--.site-header-content-->
+	    </div><!--.container-fluid-->
+	</header><!--.site-header-->
+	<div class="mobile-menu-left-overlay"></div>
+
+	<div class="page-content">
+	    <div class="container-fluid">
+	        <div class="row">
+	            <div class="col-md-12">
+					<div id="processingErrorBlock" class="form-error-text-block" style="display: none;">
+						<b>ERROR: </b>The template could not be fully processed!
+					</div>
+					<section class="box-typical">
+						<header class="box-typical-header">
+							<div class="tbl-row">
+								<div class="tbl-cell tbl-cell-title">
+									<h3>Resources</h3>
+								</div>
+							</div>
+						</header>
+						<div class="box-typical-body">
+							<div class="table-responsive">
+								<table class="table table-hover">
+									<thead>
+										<tr>
+											<th class="table-check">
+												<!--<div class="checkbox checkbox-only">
+													<input type="checkbox" id="table-check-head"/>
+													<label for="table-check-head"></label>
+												</div>-->
+											</th>
+											<th>Resource</th>
+											<th>Type</th>
+											<th>Compliance</th>
+											<th>Status</th>
+											<th></th>
+										</tr>
+									</thead>
+									<tbody id="resourcesTable">
+										<tr><td colspan="6"><center>Loading...</center></td></tr>
+										<!--
+										<tr>
+											<td class="table-check">
+												<img style="max-height: 24px;" src="img/aws/Compute_AmazonEC2_LARGE.png" />
+											</td>
+											<td>
+												MyEc2Instance
+											</td>
+											<td class="color-blue-grey-lighter">AWS::EC2::Instance</td>
+											<td><span class="label label-success">Compliant</span></td>
+											<td class="table-date">Not Created</td>
+											<td class="table-photo">
+											</td>
+										</tr>
+										<tr style="background-color: #f7f7f7;">
+											<td class="table-check"></td>
+											<td colspan="4">
+												<h6>Properties</h6>
+												<b>Blah: </b>xxx<br />
+												<b>Blah: </b>xxx
+											</td>
+											<td class="table-photo">
+											</td>
+										</tr>
+										<tr>
+											<td class="table-check">
+												<img style="max-height: 24px;" src="img/aws/Database_AmazonRDS_LARGE.png" />
+											</td>
+											<td>
+												MyDBInstance
+											</td>
+											<td class="color-blue-grey-lighter">AWS::RDS::DBInstance</td>
+											<td><span class="label label-success">Compliant</span></td>
+											<td class="table-date">Not Created</td>
+											<td class="table-photo">
+											</td>
+										</tr>
+										-->
+									</tbody>
+								</table>
+							</div>
+						</div><!--.box-typical-body-->
+					</section><!--.box-typical-->
+					<section class="box-typical panel panel-default">
+						<header class="box-typical-header panel-heading" style="border-bottom: solid 1px #d8e2e7;">
+							<h3 class="panel-title">Template</h3>
+						</header>
+						<div class="box-typical-body panel-body" style="padding: 16px;">
+							<pre><code id="templateBlock" class="yaml"></code></pre>
+						</div><!--.box-typical-body-->
+					</section><!--.box-typical-dashboard-->
+				</div>
+	        </div><!--.row-->
+	
+	    </div><!--.container-fluid-->
+	</div><!--.page-content-->
+
+	<script src="js/lib/jquery/jquery-3.2.1.min.js"></script>
+	<script src="js/lib/popper/popper.min.js"></script>
+	<script src="js/lib/tether/tether.min.js"></script>
+	<script src="js/lib/bootstrap/bootstrap.min.js"></script>
+	<script src="js/plugins.js"></script>
+
+	<script type="text/javascript" src="js/lib/jqueryui/jquery-ui.min.js"></script>
+	<script type="text/javascript" src="js/lib/lobipanel/lobipanel.min.js"></script>
+	<script type="text/javascript" src="js/lib/match-height/jquery.matchHeight.min.js"></script>
+	<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+	<script src="js/app.js"></script>
+	<script src="js/custom.js"></script>
+</body>
+</html>

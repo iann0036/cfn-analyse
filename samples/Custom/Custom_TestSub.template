@@ -1,0 +1,26 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+ 
+  "Description" : "Custom made non-AWS template",
+
+  "Resources" : {
+    "TestELB1" : {
+      "Type" : "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties" : {
+        "Subnets" : { "Fn::Sub" : "SomeRandom${AWS::Region}here" }
+      }
+    },
+    "TestELB2" : {
+      "Type" : "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties" : {
+        "Subnets" : { "Fn::Sub" : "SomeRandom${TestELB1}here" }
+      }
+    },
+    "TestELB3" : {
+      "Type" : "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties" : {
+        "Subnets" : { "Fn::Sub" : ["SomeRandom${thing}here", { "thing": { "Ref" : "TestELB1" } }] }
+      }
+    }
+  }
+}

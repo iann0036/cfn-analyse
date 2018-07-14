@@ -1,0 +1,60 @@
+rules:
+  - desc: No public ELBs
+    resource: AWS::ElasticLoadBalancing::LoadBalancer
+    property: Scheme
+    validator: stringEqual
+    rule: internal
+  - desc: EC2 Security Group rules must be internal
+    resource: AWS::EC2::SecurityGroup.Ingress
+    property: CidrIp
+    validator: cidrMatch
+    rule: rfc1918
+    level: warn
+  - desc: EC2 Security Group rules must be internal (dedicated ingress)
+    resource: AWS::EC2::SecurityGroupIngress
+    property: CidrIp
+    validator: cidrMatch
+    rule: rfc1918
+    level: warn
+  - desc: No public RDS Instances
+    resource: AWS::RDS::DBInstance
+    property: PubliclyAccessible
+    validator: bool
+    rule: false
+  - desc: No public RDS Clusters
+    resource: AWS::RDS::DBCluster
+    property: PubliclyAccessible
+    validator: bool
+    rule: false
+  - desc: No public Redshift Clusters
+    resource: AWS::Redshift::Cluster
+    property: PubliclyAccessible
+    validator: bool
+    rule: false
+  - desc: No public S3 buckets
+    resource: AWS::S3::Bucket
+    property: AccessControl
+    validator: stringNotEqual
+    rule: [PublicReadWrite, PublicRead, AuthenticatedRead]
+  - desc: No IAM Access Keys
+    resource: AWS::IAM::AccessKey
+    property: UserName
+    validator: notExists
+  - desc: No substacks
+    resource: AWS::CloudFormation::Stack
+    property: TemplateURL
+    validator: notExists
+  - desc: No API Gateways
+    resource: AWS::ApiGateway::RestApi
+    property: Name
+    validator: notExists
+  - desc: No Imports
+    resource: '*'
+    property: '*'
+    validator: noImports
+    level: warn
+  - desc: No WaitConditions
+    resource: AWS::CloudFormation::WaitConditionHandle
+    property: '*'
+    validator: resourceNotExists
+    level: warn

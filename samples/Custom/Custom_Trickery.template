@@ -1,0 +1,38 @@
+{
+    "AWSTemplateFormatVersion" : "2010-09-09",
+    "Description" : "A template designed to break your spirits",
+
+    "Resources" : {
+        "TopicLower" : {
+            "Type" : "AWS::SNS::Topic",
+            "Properties" : {
+                "TopicName" : "a-b-c-d-e-f-g-h-i-j-k-l-m-n-o-p-q-r-s-t-u-v-w-x-y-z-0-1-2-3-4-5-6-7-8-9"
+            }
+        },
+        "TopicUpper" : {
+            "Type" : "AWS::SNS::Topic",
+            "Properties" : {
+                "TopicName" : "A-B-C-D-E-F-G-H-I-J-K-L-M-N-O-P-Q-R-S-T-U-V-W-X-Y-Z"
+            }
+        },
+        "UnknownResource" : {
+            "DependsOn": [ "TopicLower", "TopicUpper"],
+            "Type": "AWS::SNS::Topic",
+            "Properties": {
+                "TopicName" : { "Fn::Join" : [ "", [
+                    { "Fn::Select" : [ 0, { "Fn::Split" : [ "-", { "Fn::GetAtt" : [ "TopicUpper", "TopicName" ] } ] } ] },
+                    { "Fn::Select" : [ 22, { "Fn::Split" : [ "-", { "Fn::GetAtt" : [ "TopicUpper", "TopicName" ] } ] } ] },
+                    { "Fn::Select" : [ 18, { "Fn::Split" : [ "-", { "Fn::GetAtt" : [ "TopicUpper", "TopicName" ] } ] } ] },
+                    "::",
+                    { "Fn::Select" : [ 4, { "Fn::Split" : [ "-", { "Fn::GetAtt" : [ "TopicUpper", "TopicName" ] } ] } ] },
+                    { "Fn::Select" : [ 2, { "Fn::Split" : [ "-", { "Fn::GetAtt" : [ "TopicUpper", "TopicName" ] } ] } ] },
+                    { "Fn::Select" : [ 28, { "Fn::Split" : [ "-", { "Fn::GetAtt" : [ "TopicLower", "TopicName" ] } ] } ] },
+                    "::",
+                    { "Fn::Select" : [ 4, { "Fn::Split" : [ "-", { "Fn::GetAtt" : [ "TopicUpper", "TopicName" ] } ] } ] },
+                    { "Fn::Select" : [ 8, { "Fn::Split" : [ "-", { "Fn::GetAtt" : [ "TopicUpper", "TopicName" ] } ] } ] },
+                    { "Fn::Select" : [ 15, { "Fn::Split" : [ "-", { "Fn::GetAtt" : [ "TopicUpper", "TopicName" ] } ] } ] }
+                ] ] }
+            }
+        }
+    }
+}
