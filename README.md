@@ -4,7 +4,7 @@
 
 ## Overview
 
-This pipeline enables organizations to impose restrictions on the content of their AWS CloudFormation templates using a [custom ruleset](https://raw.githubusercontent.com/iann0036/cfn-analyse/blob/master/lambda/rules.yml). It performs evaluation against the set of rules then posts to a Slack channel (usually managers) for them to approve the stack operation. Unlike other tools, the pipeline performs some resolution of Intrinsic Functions before evaluating the ruleset.
+This pipeline enables organizations to impose restrictions on the content of their AWS CloudFormation templates using a [custom ruleset](https://github.com/iann0036/cfn-analyse/blob/master/lambda/rules.yml). It performs evaluation against the set of rules then posts to a Slack channel (usually managers) for them to approve the stack operation. Unlike other tools, the pipeline performs some resolution of Intrinsic Functions before evaluating the ruleset.
 
 ## Usage
 
