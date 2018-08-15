@@ -6,11 +6,14 @@ import time
 import cfnanalyse
 import os
 
+slack_hook = os.environ['SLACK_HOOK_URL']
+
+
 class PendingUpsert(Exception):
     pass
 
 def send_slack(api_gateway_id, key, execution_arn, task_token):
-    requests.post(os.environ['SLACK_HOOK_URL'], data=json.dumps({
+    requests.post(slack_hook, data=json.dumps({
         "attachments": [
             {
                 "fallback": "*Upsert of '%s' Denied - Manual Approval Required*" % (key),
@@ -254,7 +257,7 @@ def start_execution(event):
                                 )
                                 # TODO: Check here inputs are expected, potential race condition
 
-                                print("Notifying via Slack...")
+                                print("Notifying via Slack..." + slack_hook)
                                 send_slack(
                                     api_gateway['id'],
                                     event['Records'][0]['s3']['object']['key'],
