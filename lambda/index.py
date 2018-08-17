@@ -7,7 +7,7 @@ import cfnanalyse
 import os
 
 slack_hook = os.environ['SLACK_HOOK_URL']
-
+website_bucket_prefix = os.environ['WEBSITE_BUCKET_PREFIX']
 
 class PendingUpsert(Exception):
     pass
@@ -19,7 +19,7 @@ def send_slack(api_gateway_id, key, execution_arn, task_token):
                 "fallback": "*Upsert of '%s' Denied - Manual Approval Required*" % (key),
                 "color": "danger",
                 "title": "Upsert of '%s' Denied - Manual Approval Required" % (key),
-                "text": "<http://cave-ap-southeast-2.s3-website-ap-southeast-2.amazonaws.com/?gwid=%s&earn=%s&ttok=%s|View Details>" % (api_gateway_id, execution_arn, task_token),
+                "text": "<http://%s-ap-southeast-2.s3-website-ap-southeast-2.amazonaws.com/?gwid=%s&earn=%s&ttok=%s|View Details>" % (website_bucket_prefix, api_gateway_id, execution_arn, task_token),
                 "fields": [
                     {
                         "title": "Status",
