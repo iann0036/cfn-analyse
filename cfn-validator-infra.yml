@@ -10,6 +10,10 @@ Parameters:
     Type: String
     Default: cave
     Description: Prefix of the bucket where the website assets live
+  LambdaObjectVersion:
+    Type: String
+    Default: latest
+    Description: S3ObjectVersion of the lambda zip
   SlackHookUrl: 
     Type: String
     Description: The full URL for a Slack Incoming WebHook
@@ -210,6 +214,7 @@ Resources:
       Code:
         S3Bucket: !Sub ${WebsiteBucketPrefix}-${AWS::Region}
         S3Key: cfn-validate.zip
+        S3ObjectVersion: !Sub ${LambdaObjectVersion}
       Runtime: "python3.6"
       Timeout: 30
 
