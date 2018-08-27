@@ -6,6 +6,10 @@ Parameters:
     Type: String
     Default: cfn-validator-test-bucket
     Description: Bucket where CloudFormation templates will automatically be processed
+  WebsiteBucketPrefix:
+    Type: String
+    Default: cave
+    Description: Prefix of the bucket where the website assets live
   SlackHookUrl: 
     Type: String
     Description: The full URL for a Slack Incoming WebHook
@@ -201,9 +205,10 @@ Resources:
       Environment:
         Variables:
           SLACK_HOOK_URL: !Ref SlackHookUrl
+          WEBSITE_BUCKET_PREFIX: !Ref WebsiteBucketPrefix
       Role: !GetAtt [ CfnValidatorLambdaExecutionRole, Arn ]
       Code:
-        S3Bucket: !Sub cave-${AWS::Region}
+        S3Bucket: !Sub ${WebsiteBucketPrefix}-${AWS::Region}
         S3Key: cfn-validate.zip
       Runtime: "python3.6"
       Timeout: 30
