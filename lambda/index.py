@@ -5,15 +5,31 @@ import requests
 import time
 import cfnanalyse
 import os
+from urllib.parse import urlsplit
 
-slack_hook = os.environ['SLACK_HOOK_URL']
+webhook = os.environ['SLACK_HOOK_URL']
 website_bucket_prefix = os.environ['WEBSITE_BUCKET_PREFIX']
 
 class PendingUpsert(Exception):
     pass
 
+def send_message(api_gateway_id, key, execution_arn, task_token):
+    parsed_url = urlsplit(webhook)
+    host = parsed_url.netloc
+    if host.endswith("aws"):
+        print("Notifying via Chime... " + webhook)
+        send_chime(api_gateway_id, key, execution_arn, task_token)
+    else:
+        print("Notifying via Slack... " + webhook)
+        send_slack(api_gateway_id, key, execution_arn, task_token)
+
+def send_chime(api_gateway_id, key, execution_arn, task_token):
+    requests.post(webhook, data=json.dumps({
+        "Content": "http://%s-ap-southeast-2.s3-website-ap-southeast-2.amazonaws.com/?gwid=%s&earn=%s&ttok=%s\n\nAnalysis of %s is complete.\n" % (website_bucket_prefix, api_gateway_id, execution_arn, task_token, key)
+        }))
+
 def send_slack(api_gateway_id, key, execution_arn, task_token):
-    requests.post(slack_hook, data=json.dumps({
+    requests.post(webhook, data=json.dumps({
         "attachments": [
             {
                 "fallback": "*Upsert of '%s' Denied - Manual Approval Required*" % (key),
@@ -256,9 +272,7 @@ def start_execution(event):
                                     workerName='CfnValidator'
                                 )
                                 # TODO: Check here inputs are expected, potential race condition
-
-                                print("Notifying via Slack..." + slack_hook)
-                                send_slack(
+                                send_message(
                                     api_gateway['id'],
                                     event['Records'][0]['s3']['object']['key'],
                                     execution['executionArn'],
