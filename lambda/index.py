@@ -6,6 +6,7 @@ import time
 import cfnanalyse
 import os
 from urllib.parse import urlsplit
+from urllib.parse import quote
 
 webhook = os.environ['SLACK_HOOK_URL']
 website_bucket_prefix = os.environ['WEBSITE_BUCKET_PREFIX']
@@ -25,7 +26,7 @@ def send_message(api_gateway_id, key, execution_arn, task_token):
 
 def send_chime(api_gateway_id, key, execution_arn, task_token):
     requests.post(webhook, data=json.dumps({
-        "Content": "http://%s-ap-southeast-2.s3-website-ap-southeast-2.amazonaws.com/?gwid=%s&earn=%s&ttok=%s\n\nAnalysis of %s is complete.\n" % (website_bucket_prefix, api_gateway_id, execution_arn, task_token, key)
+        "Content": "http://%s-ap-southeast-2.s3-website-ap-southeast-2.amazonaws.com/?gwid=%s&earn=%s&ttok=%s\n\nAnalysis of %s is complete.\n" % (website_bucket_prefix, api_gateway_id, quote(execution_arn), task_token, key)
         }))
 
 def send_slack(api_gateway_id, key, execution_arn, task_token):

@@ -37,7 +37,9 @@ $.urlParam = function(name){
 }
 
 $(document).ready(function(){
-    var url = "https://" + $.urlParam('gwid') + ".execute-api.ap-southeast-2.amazonaws.com/api/view/" + $.urlParam('earn') + "/" + $.urlParam('ttok');
+    var url = "https://" + $.urlParam('gwid') + 
+      ".execute-api.ap-southeast-2.amazonaws.com/api/view/" + 
+      decodeURIComponent($.urlParam('earn')) + "/" + $.urlParam('ttok');
     var createClickHandler = function(row) {
         return function() {
             if ($('#detailsRow' + row).attr('style') == '') {
@@ -138,7 +140,9 @@ $(document).ready(function(){
 
     // Set approve button action
     $('#approveButton').bind("click", function(){
-        url = "https://" + $.urlParam('gwid') + ".execute-api.ap-southeast-2.amazonaws.com/api/approve/" + $.urlParam('earn') + "/" + $.urlParam('ttok');
+        url = "https://" + $.urlParam('gwid') + 
+          ".execute-api.ap-southeast-2.amazonaws.com/api/approve/" + 
+          decodeURIComponent($.urlParam('earn')) + "/" + $.urlParam('ttok');
         $('#approveButton').off();
         $.ajax({
             method: "GET",
@@ -156,7 +160,9 @@ $(document).ready(function(){
 
     // Set deny button action
     $('#denyButton').bind("click", function(){
-        url = "https://" + $.urlParam('gwid') + ".execute-api.ap-southeast-2.amazonaws.com/api/deny/" + $.urlParam('earn') + "/" + $.urlParam('ttok');
+        url = "https://" + $.urlParam('gwid') + 
+          ".execute-api.ap-southeast-2.amazonaws.com/api/deny/" +
+          decodeURIComponent($.urlParam('earn')) + "/" + $.urlParam('ttok');
         $('#denyButton').off();
         $.ajax({
             method: "GET",
