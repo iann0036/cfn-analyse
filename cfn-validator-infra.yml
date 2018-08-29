@@ -14,9 +14,9 @@ Parameters:
     Type: String
     Default: latest
     Description: S3ObjectVersion of the lambda zip
-  SlackHookUrl: 
+  WebhookUrl: #detects chime by .aws suffix, assumes everything else is slack
     Type: String
-    Description: The full URL for a Slack Incoming WebHook
+    Description: The full URL for Incoming WebHook
 
 Resources:
   CfnValidatorApiGateway:
@@ -208,7 +208,7 @@ Resources:
       Handler: "index.handler"
       Environment:
         Variables:
-          SLACK_HOOK_URL: !Ref SlackHookUrl
+          WEBHOOK_URL: !Ref WebhookUrl
           WEBSITE_BUCKET_PREFIX: !Ref WebsiteBucketPrefix
       Role: !GetAtt [ CfnValidatorLambdaExecutionRole, Arn ]
       Code:
