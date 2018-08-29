@@ -1,6 +1,6 @@
 import json
 import sys
-import pprint
+from pprint import pprint
 import ruamel.yaml
 import ipaddr
 import traceback
@@ -211,7 +211,7 @@ class CfnAnalyse(object):
                 self.processProperty(resource_type.split(".")[0] + "." + propdef['Type'], subpropname, subprop)
         else:
             print(resource_type.split(".")[0] + "." + propdef['Type'])
-            pprint.pprint(propdef)
+            pprint(propdef)
             raise Exception('Unhandled Property Type')
 
     def resolvePropertyValue(self, prop, expected_type, accept_map = False):
@@ -220,17 +220,32 @@ class CfnAnalyse(object):
                 if prop['Ref'] in self.parameters.keys():
                     return self.parameters[self.resolvePropertyValue(prop['Ref'], expected_type)]
                 else:
-                    raise Exception('Unable to process property reduce - no ref')
+                    pprint('Unable to process property reduce - no ref: ')
+                    pprint(prop)
             elif 'Fn::Base64' in prop:
-                return str(base64.b64encode(self.resolvePropertyValue(prop['Fn::Base64'], "String").encode()))
+                result = self.resolvePropertyValue(prop['Fn::Base64'], expected_type)
+                try: #this blows up on a dict sometimes
+                    result = str(base64.b64encode(self.resolvePropertyValue(prop['Fn::Base64'], "String").encode()))
+                except Exception as e:
+                    pprint(str(e))
+                    pprint('Unable to process Fn::Base64: ')
+                    pprint(prop)
+                return result
             elif 'Fn::FindInMap' in prop:        
                 return self.mappings[self.resolvePropertyValue(prop['Fn::FindInMap'][0], "String")][self.resolvePropertyValue(prop['Fn::FindInMap'][1], "String")][self.resolvePropertyValue(prop['Fn::FindInMap'][2], "String")]
             elif 'Fn::GetAZs' in prop:
                 return ["us-east-1a", "us-east-1b", "us-east-1c"] # TODO: get from account
             elif 'Fn::Join' in prop:
-                return self.resolvePropertyValue(prop['Fn::Join'][0], "String").join(self.resolvePropertyValue(prop['Fn::Join'][1], "List")) # TODO: check
+                result = str(prop['Fn::Join'][0]) + str(prop['Fn::Join'][1])
+                try:
+                 result = self.resolvePropertyValue(prop['Fn::Join'][0], "String").join(self.resolvePropertyValue(prop['Fn::Join'][1], "List")) # TODO: check
+                except Exception as e:
+                    pprint(str(e))
+                    pprint('Unable to process Fn::Join: ')
+                    pprint(prop)
+                return result
             elif 'Fn::Split' in prop:
-                return self.resolvePropertyValue(prop['Fn::Split'][1], "List").split(self.esolvePropertyValue(prop['Fn::Split'][0], "String")) # TODO: check
+                return self.resolvePropertyValue(prop['Fn::Split'][1], "List").split(self.resolvePropertyValue(prop['Fn::Split'][0], "String")) # TODO: check
             elif 'Fn::Select' in prop:
                 return self.resolvePropertyValue(prop['Fn::Select'][1], "List")[int(str(self.resolvePropertyValue(prop['Fn::Select'][0], "Integer")))] # TODO: check
             elif 'Fn::GetAtt' in prop:
@@ -267,7 +282,6 @@ class CfnAnalyse(object):
                     sub_var_map = self.resolvePropertyValue(resolved_args[1], "Map", True)
                 else:
                     src_str = self.resolvePropertyValue(resolved_args, "String")
-                
                 # Resolve substitutions
                 index = src_str.find("${")
                 resolvable = True
@@ -295,15 +309,16 @@ class CfnAnalyse(object):
                     index = src_str.find("${")
                 if index == -1:
                     return src_str
-                
-                print("Failed to resolve a Fn::Sub")
+                pprint("Failed to resolve a Fn::Sub: ")
+                pprint(prop)
             elif accept_map:
                 # it's a map
                 resolved_map = {}
                 for k, v in prop.items():
                     resolved_map[k] = self.resolvePropertyValue(v, "String", True)
                 return resolved_map
-            raise Exception('Unable to process property reduce')
+            pprint('Unable to process property reduce: ')
+            pprint(prop)
         if isinstance(prop, list) and not isinstance(prop, str):
             print("Iterating through list or props to resolve")
             resolvedlist = []
@@ -313,7 +328,8 @@ class CfnAnalyse(object):
         else:
             # TODO: double check expected_type matches here
             return prop
-        raise Exception('Unable to evaluate property function')
+        pprint('Unable to evaluate property function: ')
+        pprint(prop)
 
     def process_resources(self, iterate_all_versions = True):
         if 'Mappings' in self.cfn_template:
@@ -354,7 +370,7 @@ class CfnAnalyse(object):
                 return self.process_resources(True)
 
             print("\n[ERROR] Could not process all items\n")
-            pprint.pprint(cfnresources)
+            pprint(cfnresources)
             print("")
             return False
         

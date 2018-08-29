@@ -5,21 +5,45 @@ import requests
 import time
 import cfnanalyse
 import os
+from urllib.parse import urlsplit
+from urllib.parse import quote
 
-slack_hook = os.environ['SLACK_HOOK_URL']
+webhook = os.environ['WEBHOOK_URL']
 website_bucket_prefix = os.environ['WEBSITE_BUCKET_PREFIX']
+aws_region = os.environ['AWS_REGION']
 
 class PendingUpsert(Exception):
     pass
 
+def send_message(api_gateway_id, key, execution_arn, task_token):
+    parsed_url = urlsplit(webhook)
+    host = parsed_url.netloc
+    if host.endswith("aws"):
+        print("Notifying via Chime... " + webhook)
+        send_chime(api_gateway_id, key, execution_arn, task_token)
+    else:
+        print("Notifying via Slack... " + webhook)
+        send_slack(api_gateway_id, key, execution_arn, task_token)
+
+def send_chime(api_gateway_id, key, execution_arn, task_token):
+    requests.post(webhook, data=json.dumps({
+        "Content": "http://{bucket}-{region}.s3-website-{region}.amazonaws.com/?region={region}&gwid={gwid}&earn={earn}&ttok={tt}\n\nAnalysis of {key} is complete.\n"
+        .format(bucket=website_bucket_prefix, region=aws_region, 
+            gwid=api_gateway_id, earn=quote(execution_arn), tt=task_token, key=key)
+        }))
+
 def send_slack(api_gateway_id, key, execution_arn, task_token):
-    requests.post(slack_hook, data=json.dumps({
+    requests.post(webhook, data=json.dumps({
         "attachments": [
             {
-                "fallback": "*Upsert of '%s' Denied - Manual Approval Required*" % (key),
+                "fallback": "*Upsert of '{}' Denied - Manual Approval Required*"
+                .format(key),
                 "color": "danger",
-                "title": "Upsert of '%s' Denied - Manual Approval Required" % (key),
-                "text": "<http://%s-ap-southeast-2.s3-website-ap-southeast-2.amazonaws.com/?gwid=%s&earn=%s&ttok=%s|View Details>" % (website_bucket_prefix, api_gateway_id, execution_arn, task_token),
+                "title": "Upsert of '{}' Denied - Manual Approval Required"
+                .format(key),
+                "text": "<http://{bucket}-{region}.s3-website-{region}.amazonaws.com/?region={region}&gwid={gwid}&earn={earn}&ttok={tt}|View Details>"
+                .format(bucket=website_bucket_prefix, region=aws_region, 
+                    gwid=api_gateway_id, earn=execution_arn, tt=task_token),
                 "fields": [
                     {
                         "title": "Status",
@@ -87,7 +111,7 @@ def upsert(event):
 
     response = cfnclient.create_stack(
         StackName=event['stack_name'],
-        TemplateURL='https://s3-ap-southeast-2.amazonaws.com/%s/%s?versionId=%s' % (event['bucket'], event['key'], event['version']),
+        TemplateURL='https://s3-%s.amazonaws.com/%s/%s?versionId=%s' % (aws_region, event['bucket'], event['key'], event['version']),
         #Parameters=[
         #    {
         #        'ParameterKey': 'string',
@@ -256,9 +280,7 @@ def start_execution(event):
                                     workerName='CfnValidator'
                                 )
                                 # TODO: Check here inputs are expected, potential race condition
-
-                                print("Notifying via Slack..." + slack_hook)
-                                send_slack(
+                                send_message(
                                     api_gateway['id'],
                                     event['Records'][0]['s3']['object']['key'],
                                     execution['executionArn'],
