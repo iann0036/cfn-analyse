@@ -1,6 +1,7 @@
 # CloudFormation Analyse #
 
 ![Template Evaluation Preview Screen](https://raw.githubusercontent.com/iann0036/cfn-analyse/master/website/screen-2.png)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fiann0036%2Fcfn-analyse.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fiann0036%2Fcfn-analyse?ref=badge_shield)
 
 ## Overview
 
@@ -30,3 +31,7 @@ The pipeline uses S3 Event Triggers, which triggers a new Step Function executio
 
 A single Lambda function is deployed to perform operations on all non-activity states. In order to process the users inputs, an API Gateway fronts the Lambda execution for the AJAX calls from the website. Due to the implementation of Step Functions, the execution token is used to uniquely identify the workflow being interacted with.
 
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fiann0036%2Fcfn-analyse.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fiann0036%2Fcfn-analyse?ref=badge_large)
